@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Mein Planer">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>Mein Planer</title>
+  <style>
+    :root{
+      --bg:#f5f7fb;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
+      --accent:#2563eb;--accent2:#eff6ff;--danger:#dc2626;--ok:#059669;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .app{max-width:900px;margin:auto;padding:18px 14px 90px}
+    .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}
+    h1{font-size:28px;margin:0 0 4px}.sub{color:var(--muted);font-size:14px}
+    .pill{background:var(--accent2);color:var(--accent);padding:8px 10px;border-radius:12px;font-weight:700;font-size:13px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
+    .card h2{font-size:18px;margin:0 0 12px}
+    .row{display:flex;gap:10px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+    .row:first-child{border-top:0;padding-top:0}
+    .row:last-child{padding-bottom:0}
+    .row-main{min-width:0;flex:1}
+    .title{font-weight:700;overflow-wrap:anywhere}
+    .meta{font-size:13px;color:var(--muted);margin-top:3px}
+    .checkbox{width:22px;height:22px;flex:0 0 auto}
+    .done .title{text-decoration:line-through;color:var(--muted)}
+    .tag{font-size:12px;padding:4px 7px;border-radius:999px;background:#f3f4f6;color:#374151;white-space:nowrap}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{border:1px solid var(--line);background:#fff;padding:10px 12px;border-radius:12px;font-weight:700;min-height:44px}
+    .btn.primary{background:var(--accent);color:white;border-color:var(--accent)}
+    .btn.danger{color:var(--danger)}
+    .fab{position:fixed;right:18px;bottom:24px;width:58px;height:58px;border-radius:50%;border:0;background:var(--accent);color:white;font-size:30px;box-shadow:0 10px 24px rgba(0,0,0,.18)}
+    .nav{display:flex;gap:8px;overflow:auto;padding:4px 0 14px}
+    .nav button{white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 12px;font-weight:700}
+    .nav button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .empty{color:var(--muted);font-size:14px}
+    dialog{width:min(560px,calc(100% - 24px));border:0;border-radius:18px;padding:0;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+    dialog::backdrop{background:rgba(0,0,0,.35)}
+    .modal{padding:18px}.modal h3{margin:0 0 14px;font-size:20px}
+    .field{margin-bottom:12px}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
+    .field input,.field select{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:white;min-height:46px}
+    .modal-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+    .summary{font-size:14px;line-height:1.5;color:#374151}
+    .progress{height:9px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:10px}
+    .progress span{display:block;height:100%;background:var(--accent)}
+    @media (max-width:700px){.grid{grid-template-columns:1fr}.app{padding-top:14px}.top h1{font-size:24px}}
+    @media (prefers-color-scheme:dark){
+      :root{--bg:#0f172a;--card:#111827;--text:#f9fafb;--muted:#9ca3af;--line:#273244;--accent2:#172554}
+      .btn,.nav button,.field input,.field select{background:#111827;color:var(--text)}
+      .tag{background:#1f2937;color:#d1d5db}.summary{color:#d1d5db}.progress{background:#263244}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div><h1>Mein Planer</h1><div class="sub" id="dateText"></div></div>
+    <div class="pill" id="progressPill">0 % erledigt</div>
+  </div>
+
+  <div class="nav" id="nav"></div>
+
+  <section id="todayView">
+    <div class="card" style="margin-bottom:12px">
+      <h2>☀️ Heute</h2>
+      <div class="summary" id="morningSummary"></div>
+      <div class="progress"><span id="progressBar" style="width:0%"></span></div>
+    </div>
+    <div class="grid">
+      <div class="card"><h2>📅 Termine</h2><div id="todayEvents"></div></div>
+      <div class="card"><h2>✅ Aufgaben</h2><div id="todayTasks"></div></div>
+    </div>
+  </section>
+
+  <section id="listView" hidden>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px">
+        <h2 id="listTitle" style="margin:0">Aufgaben</h2>
+        <button class="btn" id="clearDoneBtn">Erledigte löschen</button>
+      </div>
+      <div id="listContent"></div>
+    </div>
+  </section>
+</div>
+
+<button class="fab" id="addBtn" aria-label="Hinzufügen">+</button>
+
+<dialog id="editor">
+  <form method="dialog" class="modal" id="editForm">
+    <h3>Neu hinzufügen</h3>
+    <div class="field">
+      <label for="type">Typ</label>
+      <select id="type">
+        <option value="homework">📚 Hausaufgabe</option>
+        <option value="exam">📝 Arbeit / Test</option>
+        <option value="learn">🧠 Lernen</option>
+        <option value="household">🧹 Haushalt</option>
+        <option value="todo">✅ To-do</option>
+        <option value="event">📅 Termin</option>
+      </select>
+    </div>
+    <div class="field"><label for="title">Titel</label><input id="title" maxlength="100" required placeholder="z. B. Mathe S. 145 Nr. 3–6"></div>
+    <div class="field"><label for="date">Datum</label><input id="date" type="date" required></div>
+    <div class="field" id="timeWrap"><label for="time">Uhrzeit</label><input id="time" type="time"></div>
+    <div class="field" id="repeatWrap">
+      <label for="repeat">Wiederholung</label>
+      <select id="repeat">
+        <option value="none">Keine</option>
+        <option value="daily">Täglich</option>
+        <option value="weekly">Wöchentlich</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="cancelBtn">Abbrechen</button>
+      <button class="btn primary" value="default">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(()=>{
+  const STORE='jannisPlannerDataV1';
+  const todayISO=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
+  let data;
+  try{data=JSON.parse(localStorage.getItem(STORE))||{items:[]}}catch{data={items:[]}}
+  if(!Array.isArray(data.items)) data.items=[];
+
+  const save=()=>localStorage.setItem(STORE,JSON.stringify(data));
+  const fmtDate=iso=>{const [y,m,d]=iso.split('-').map(Number);return new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(y,m-1,d))};
+  const daysTo=iso=>{const a=new Date(todayISO()+'T00:00:00');const b=new Date(iso+'T00:00:00');return Math.round((b-a)/86400000)};
+  const labels={homework:'📚 Hausaufgabe',exam:'📝 Arbeit / Test',learn:'🧠 Lernen',household:'🧹 Haushalt',todo:'✅ To-do',event:'📅 Termin'};
+  const views=[
+    ['today','Heute'],['homework','Hausaufgaben'],['exam','Arbeiten'],['learn','Lernen'],['household','Haushalt'],['todo','To-dos'],['event','Termine']
+  ];
+  let current='today';
+
+  document.getElementById('dateText').textContent=new Intl.DateTimeFormat('de-DE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}).format(new Date());
+
+  const nav=document.getElementById('nav');
+  views.forEach(([id,label])=>{
+    const b=document.createElement('button');b.textContent=label;b.dataset.view=id;
+    b.addEventListener('click',()=>{current=id;render()});nav.appendChild(b)
+  });
+
+  function recurringMatches(it, date){
+    if(!it.repeat || it.repeat==='none') return it.date===date;
+    const start=new Date(it.date+'T00:00:00'), target=new Date(date+'T00:00:00');
+    if(target<start)return false;
+    if(it.repeat==='daily')return true;
+    if(it.repeat==='weekly')return start.getDay()===target.getDay();
+    return false;
+  }
+
+  function visibleTodayItems(){
+    return data.items.filter(it=>recurringMatches(it,todayISO()));
+  }
+
+  function row(it){
+    const div=document.createElement('div');div.className='row'+(it.done?' done':'');
+    if(it.type!=='event'){
+      const cb=document.createElement('input');cb.type='checkbox';cb.className='checkbox';cb.checked=!!it.done;
+      cb.addEventListener('change',()=>{it.done=cb.checked;save();render()});div.appendChild(cb);
+    }
+    const main=document.createElement('div');main.className='row-main';
+    const t=document.createElement('div');t.className='title';t.textContent=it.title;
+    const m=document.createElement('div');m.className='meta';
+    let meta=labels[it.type];
+    if(it.date) meta+=' · '+fmtDate(it.date);
+    if(it.type==='event' && it.time) meta+=' · '+it.time+' Uhr';
+    if(it.repeat==='daily') meta+=' · täglich';
+    if(it.repeat==='weekly') meta+=' · wöchentlich';
+    m.textContent=meta;main.append(t,m);div.appendChild(main);
+    const del=document.createElement('button');del.className='btn danger';del.type='button';del.textContent='Löschen';
+    del.addEventListener('click',()=>{data.items=data.items.filter(x=>x.id!==it.id);save();render()});div.appendChild(del);
+    return div;
+  }
+
+  function render(){
+    nav.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.view===current));
+    const todayView=document.getElementById('todayView'), listView=document.getElementById('listView');
+    todayView.hidden=current!=='today'; listView.hidden=current==='today';
+
+    const allTasks=data.items.filter(x=>x.type!=='event');
+    const done=allTasks.filter(x=>x.done).length;
+    const pct=allTasks.length?Math.round(done/allTasks.length*100):0;
+    document.getElementById('progressPill').textContent=pct+' % erledigt';
+    document.getElementById('progressBar').style.width=pct+'%';
+
+    if(current==='today'){
+      const today=visibleTodayItems();
+      const ev=today.filter(x=>x.type==='event').sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+      const tasks=today.filter(x=>x.type!=='event'&&!x.done);
+      const exams=data.items.filter(x=>x.type==='exam'&&!x.done&&daysTo(x.date)>=0).sort((a,b)=>a.date.localeCompare(b.date));
+      const next=exams[0];
+      let learn='';
+      if(next){
+        const d=daysTo(next.date);
+        learn=d===0?`Heute ist „${next.title}“. Nur noch kurz wiederholen.`:
+          d<=3?`„${next.title}“ ist in ${d} Tagen. Heute 30–45 Minuten lernen.`:
+          d<=7?`„${next.title}“ ist in ${d} Tagen. Heute 20–30 Minuten lernen.`:
+          d<=14?`„${next.title}“ ist in ${d} Tagen. Heute 15–20 Minuten anfangen.`:
+          `Die nächste Arbeit „${next.title}“ ist in ${d} Tagen.`;
+      } else learn='Keine anstehende Arbeit eingetragen.';
+      document.getElementById('morningSummary').textContent=`Heute: ${ev.length} Termin${ev.length===1?'':'e'}, ${tasks.length} offene Aufgabe${tasks.length===1?'':'n'}. ${learn}`;
+
+      const evBox=document.getElementById('todayEvents'), taskBox=document.getElementById('todayTasks');
+      evBox.innerHTML='';taskBox.innerHTML='';
+      if(!ev.length)evBox.innerHTML='<div class="empty">Keine Termine heute.</div>'; else ev.forEach(x=>evBox.appendChild(row(x)));
+      if(!tasks.length)taskBox.innerHTML='<div class="empty">Für heute ist alles erledigt. 😎</div>'; else tasks.forEach(x=>taskBox.appendChild(row(x)));
+    }else{
+      document.getElementById('listTitle').textContent=views.find(v=>v[0]===current)[1];
+      const list=data.items.filter(x=>x.type===current).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+      const box=document.getElementById('listContent');box.innerHTML='';
+      if(!list.length)box.innerHTML='<div class="empty">Noch nichts eingetragen.</div>';else list.forEach(x=>box.appendChild(row(x)));
+    }
+  }
+
+  const dlg=document.getElementById('editor'), type=document.getElementById('type'), timeWrap=document.getElementById('timeWrap'), repeatWrap=document.getElementById('repeatWrap');
+  const syncFields=()=>{timeWrap.style.display=type.value==='event'?'block':'none';repeatWrap.style.display=['household','todo'].includes(type.value)?'block':'none'};
+  type.addEventListener('change',syncFields);
+
+  document.getElementById('addBtn').addEventListener('click',()=>{
+    document.getElementById('editForm').reset();
+    document.getElementById('date').value=todayISO();
+    if(current!=='today' && views.some(v=>v[0]===current)) type.value=current;
+    else type.value='homework';
+    syncFields();dlg.showModal();setTimeout(()=>document.getElementById('title').focus(),20)
+  });
+  document.getElementById('cancelBtn').addEventListener('click',()=>dlg.close());
+  document.getElementById('editForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    const title=document.getElementById('title').value.trim();
+    const date=document.getElementById('date').value;
+    if(!title||!date)return;
+    data.items.push({
+      id:crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random(),
+      type:type.value,title,date,
+      time:type.value==='event'?document.getElementById('time').value:'',
+      repeat:['household','todo'].includes(type.value)?document.getElementById('repeat').value:'none',
+      done:false
+    });
+    save();dlg.close();render()
+  });
+  document.getElementById('clearDoneBtn').addEventListener('click',()=>{data.items=data.items.filter(x=>!x.done);save();render()});
+
+  if(data.items.length===0){
+    data.items=[
+      {id:'d1',type:'household',title:'Zimmer 10 Minuten aufräumen',date:todayISO(),repeat:'none',done:false},
+      {id:'d2',type:'homework',title:'Hausaufgaben prüfen',date:todayISO(),repeat:'none',done:false}
+    ];save();
+  }
+  render();
+
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
