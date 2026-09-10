@@ -1,9 +1,0 @@
-{
-  "name": "Mein Planer",
-  "short_name": "Planer",
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#f5f7fb",
-  "theme_color": "#111827",
-  "description": "Privater Tagesplaner für Termine, Hausaufgaben, Lernen, Haushalt und To-dos."
-}
